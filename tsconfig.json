@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "strict": true,
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "typeRoots": ["./node_modules/@types"],
+    "noUncheckedIndexedAccess": true,
+    "noImplicitAny": true
+  },
+  "include": ["**/*"],
+  "exclude": ["node_modules", "dist"]
+}

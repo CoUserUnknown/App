@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlserver"
+}
+
+model analystsRecords {
+  Id                 String               @id(map: "PK__analysts__3214EC07E350DCBC") @db.UniqueIdentifier
+  FullName           String               @db.VarChar(250)
+  Email              String               @unique(map: "UQ__analysts__A9D10534F98068E8") @db.VarChar(250)
+  IsActive           Boolean              @default(true, map: "DF__analystsR__IsAct__5629CD9C")
+  FromTeam           String               @db.VarChar(50)
+  AnalystWave        Int?                 @db.TinyInt
+  learningActivities learningActivities[]
+}
+
+model coursesList {
+  Id                 String               @id(map: "PK__coursesL__3214EC07ADA7226C") @db.UniqueIdentifier
+  coursename         String               @unique(map: "UQ__coursesL__E08EA5569A6C53D7") @db.VarChar(500)
+  duration           Decimal              @db.Decimal(5, 2)
+  DeliveryType       String               @db.VarChar(20)
+  ProductName        String               @db.VarChar(50)
+  Tecnology          String               @db.VarChar(50)
+  learningActivities learningActivities[]
+}
+
+model learningActivities {
+  Id              String          @id(map: "PK__learning__3214EC0721C45361") @db.UniqueIdentifier
+  AnalystId       String          @db.UniqueIdentifier
+  CourseId        String          @db.UniqueIdentifier
+  TrainerId       String?         @db.UniqueIdentifier
+  DeliveryType    String          @db.VarChar(20)
+  ActivityDate    DateTime        @db.Date
+  DurationHours   Decimal         @db.Decimal(5, 2)
+  CreatedAt       DateTime        @default(dbgenerated("sysdatetime()"), map: "DF__learningA__Creat__5EBF139D")
+  IsDeleted       Boolean         @default(false, map: "DF__learningA__IsDel__5FB337D6")
+  analystsRecords analystsRecords @relation(fields: [AnalystId], references: [Id], onUpdate: NoAction, map: "FK_LA_Analyst")
+  coursesList     coursesList     @relation(fields: [CourseId], references: [Id], onUpdate: NoAction, map: "FK_LA_Course")
+  trainersList    trainersList?   @relation(fields: [TrainerId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_LA_Trainer")
+}
+
+model sysdiagrams {
+  name         String @db.NVarChar(128)
+  principal_id Int
+  diagram_id   Int    @id(map: "PK__sysdiagr__C2B05B61B2206633") @default(autoincrement())
+  version      Int?
+  definition   Bytes?
+
+  @@unique([principal_id, name], map: "UK_principal_name")
+}
+
+model trainersList {
+  Id                 String               @id(map: "PK__trainers__3214EC0769726CF1") @db.UniqueIdentifier
+  FullName           String               @db.NVarChar(200)
+  IsActive           Boolean              @default(true, map: "DF__trainersL__IsAct__5BE2A6F2")
+  learningActivities learningActivities[]
+}
