@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 
 
 @Module({
-  imports: [PrismaModule, ConfigModule.forRoot({ isGlobal: true }),]  
+  imports: [PrismaModule, ConfigModule.forRoot({ isGlobal: true }),
+  ]  
 })
 export class AppModule {}
