@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { BulkLearningActivityUpload } from './components/bulkLearningActivityUpload';
-import { ManualLearningActivityForm } from './components/manualLearningActivityform';
-import type { RemovedAlertInput } from './components/bulkLearningActivityUpload';
+import { BulkLearningActivityUpload } from './src/components/bulkLearningActivityUpload';
+import { ManualLearningActivityForm } from './src/components/manualLearningActivityform';
+import type { RemovedAlertInput } from './src/components/bulkLearningActivityUpload';
 
 export default function App() {
   const [mode, setMode] = useState<'bulk' | 'manual'>('bulk');
