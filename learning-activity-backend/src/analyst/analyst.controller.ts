@@ -2,7 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { AnalystService } from './analyst.service';
 import { AnalystResponseDto } from './dto/analystResponse.dto';
 
-@Controller('api/analysts')
+@Controller('analysts')
 export class AnalystController {
   constructor(private readonly service: AnalystService) {}
 
