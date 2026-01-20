@@ -26,6 +26,7 @@ export function normalizeLearningActivity(
 }
 
 
+
 function normalizeDate(value: string | undefined): string {
   if (!value) return '';
 
@@ -36,8 +37,17 @@ function normalizeDate(value: string | undefined): string {
   const sep = trimmed.includes('/') ? '/' : (trimmed.includes('-') ? '-' : null);
   if (!sep) return '';
 
-  const parts = trimmed.split(sep);
-  if (parts.length !== 3) return '';
+  const rawParts = trimmed.split(sep);
+  if (!hasThreeParts(rawParts)) return ''; // <- tuple guard
+
+  // Now parts is a [string, string, string] tuple
+  const [s1, s2, s3] = rawParts;
+
+  // Convert parts to numbers (safe: s1/s2/s3 are guaranteed strings)
+  const p1 = Number(s1);
+  const p2 = Number(s2);
+  const p3 = Number(s3);
+  if ([p1, p2, p3].some((n) => Number.isNaN(n))) return '';
 
   // Zero-pad helper
   const pad2 = (n: number) => (n < 10 ? `0${n}` : `${n}`);
@@ -52,22 +62,15 @@ function normalizeDate(value: string | undefined): string {
     return `${pad2(d)}/${pad2(m)}/${y}`;
   };
 
-  // Convert parts to numbers
-  const [p1, p2, p3] = parts.map((p) => Number(p));
-  if ([p1, p2, p3].some((n) => Number.isNaN(n))) return '';
-
-  // Pattern 1: YYYY/MM/DD
-  if (parts[0].length === 4) {
+  // Pattern 1: YYYY/MM/DD (unambiguous if first token is 4-digit year)
+  if (s1.length === 4) {
     const y = p1, m = p2, d = p3;
     const res = tryBuild(d, m, y);
     if (res) return res;
   }
 
-  // Pattern 2: DD/MM/YYYY (unambiguous if last part is 4-digit year)
-  if (parts[2].length === 4) {
-    // We must still disambiguate DD/MM/YYYY vs MM/DD/YYYY.
-    // Heuristic: if p1 > 12, it must be DD/MM/YYYY. If p2 > 12, it must be MM/DD/YYYY.
-    // If both <= 12, prefer DD/MM/YYYY only if it results in a valid date (same for MM/DD/YYYY).
+  // Pattern 2: DD/MM/YYYY or MM/DD/YYYY (unambiguous if last token is 4-digit year)
+  if (s3.length === 4) {
     const y = p3;
 
     // First try DD/MM/YYYY
@@ -79,7 +82,7 @@ function normalizeDate(value: string | undefined): string {
     if (res) return res;
   }
 
-  // If we got here, it might still be MM/DD/YYYY with 2-digit year (not supported) or invalid
+  // If we got here, it might be unsupported (e.g., 2-digit year) or invalid
   return '';
 
   // --- helpers ---
@@ -94,6 +97,11 @@ function normalizeDate(value: string | undefined): string {
   function isLeapYear(year: number): boolean {
     return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
   }
+}
+
+/** Type guard: turns string[] into [string, string, string] when length is 3 */
+function hasThreeParts(a: string[]): a is [string, string, string] {
+  return a.length === 3;
 }
 
 

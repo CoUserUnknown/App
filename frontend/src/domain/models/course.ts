@@ -6,5 +6,4 @@ export interface Course {
   productId?: string;
   platformId: string;
   defaultDeliveryType: DeliveryType;
-  isActive: boolean;
 }
