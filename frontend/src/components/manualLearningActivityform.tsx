@@ -4,17 +4,31 @@ import {
   LearningActivityFieldErrors
 } from '../domain/types/normalizedLearningActivity';
 import { validateLearningActivity } from '../domain/validation/learningActivityImport.validator';
+import { createLearningActivity } from '../services/learningActivityService';
 
 export type ManualLearningActivityFormProps = {
   initialValue?: Partial<NormalizedLearningActivityInput>;
+
+  /**
+   * Optional hook mainly for testing or legacy flows
+   */
   onSubmit?: (value: NormalizedLearningActivityInput) => void;
-  onCancel?: () => void;
+
+  /**
+   * Called after a successful backend submit
+   */
   onSuccess?: () => void;
+
+  /**
+   * Called when the user cancels the form
+   */
+  onCancel?: () => void;
 };
 
 export function ManualLearningActivityForm({
   initialValue,
   onSubmit,
+  onSuccess,
   onCancel
 }: ManualLearningActivityFormProps) {
   const [form, setForm] = useState<NormalizedLearningActivityInput>({
@@ -29,6 +43,9 @@ export function ManualLearningActivityForm({
   const [fieldErrors, setFieldErrors] =
     useState<LearningActivityFieldErrors>({});
 
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const updateField = <
     K extends keyof NormalizedLearningActivityInput
   >(
@@ -38,7 +55,7 @@ export function ManualLearningActivityForm({
     setForm(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const validationErrors = validateLearningActivity(form);
     setFieldErrors(validationErrors);
 
@@ -46,7 +63,26 @@ export function ManualLearningActivityForm({
       return;
     }
 
-    onSubmit?.(form);
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      // Optional legacy hook
+      onSubmit?.(form);
+
+      // Real backend call
+      await createLearningActivity(form);
+
+      onSuccess?.();
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : 'Unexpected error while saving activity'
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -110,7 +146,7 @@ export function ManualLearningActivityForm({
         )}
       </div>
 
-      {/* Trainer name (optional) */}
+      {/* Trainer name */}
       <div>
         <label>Trainer name (optional)</label>
         <input
@@ -124,7 +160,7 @@ export function ManualLearningActivityForm({
         />
       </div>
 
-      {/* Date */}
+      {/* Activity date */}
       <div>
         <label>Date</label>
         <input
@@ -137,6 +173,11 @@ export function ManualLearningActivityForm({
             borderColor: fieldErrors.activityDate ? 'red' : undefined
           }}
         />
+        {fieldErrors.activityDate && (
+          <small style={{ color: 'red' }}>
+            {fieldErrors.activityDate}
+          </small>
+        )}
       </div>
 
       {/* Duration */}
@@ -161,19 +202,31 @@ export function ManualLearningActivityForm({
         )}
       </div>
 
-      <button onClick={handleSubmit}>
-        Submit
-      </button>
-
-      {onCancel && (
-        <button
-          type="button"
-          onClick={onCancel}
-          style={{ marginLeft: 8 }}
-        >
-          Cancel
-        </button>
+      {submitError && (
+        <div style={{ color: 'red', marginTop: 8 }}>
+          {submitError}
+        </div>
       )}
+
+      <div style={{ marginTop: 12 }}>
+        <button
+          onClick={handleSubmit}
+          disabled={submitting}
+        >
+          {submitting ? 'Submitting...' : 'Submit'}
+        </button>
+
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{ marginLeft: 8 }}
+            disabled={submitting}
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </div>
   );
 }
