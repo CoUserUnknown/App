@@ -3,3 +3,6 @@ export interface ValidationErrorResponse {
   fieldErrors: Record<string, string>;
 }
 
+export class ValidationErrorDto {
+  fieldErrors: Record<string, string> | undefined;
+}

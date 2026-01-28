@@ -3,13 +3,14 @@ import {
   Controller,
   Get,
   Post,
-  BadRequestException
+  HttpException,
+  HttpStatus
 } from '@nestjs/common';
 import { LearningActivityService } from './learningActivity.service';
-import { CreateLearningActivityDto } from './dto/createLearningActivity.dto';
+import { NormalizedLearningActivityInput } from '../../../frontend/src/domain/types/normalizedLearningActivity';
 import { LearningActivityResponseDto } from './dto/responseLearningActivity.dto';
 import { BulkImportResultDto } from '../bulkImport/dto/bulkImportResult.dto';
-import { ValidationErrorResponse } from '../common/dto/validationError.dto';
+import { ValidationErrorDto } from '../common/dto/validationError.dto';
 
 @Controller('learning-activities')
 export class LearningActivityController {
@@ -19,33 +20,24 @@ export class LearningActivityController {
 
   @Post()
   async create(
-    @Body() dto: CreateLearningActivityDto
+    @Body() input: NormalizedLearningActivityInput
   ): Promise<LearningActivityResponseDto> {
-    try {
-      return await this.service.create(dto);
-    } catch (error: any) {
-      /**
-       * Standardized validation error handling
-       */
-      if (
-        error?.message === 'VALIDATION_FAILED' &&
-        error?.fieldErrors
-      ) {
-        const payload: ValidationErrorResponse = {
-          message: 'VALIDATION_FAILED',
-          fieldErrors: error.fieldErrors
-        };
+    const result =
+      await this.service.createFromNormalized(input);
 
-        throw new BadRequestException(payload);
-      }
-
-      throw error;
+    if ('fieldErrors' in result) {
+      throw new HttpException(
+        result as ValidationErrorDto,
+        HttpStatus.UNPROCESSABLE_ENTITY
+      );
     }
+
+    return result;
   }
 
   @Post('bulk')
-  bulkImport(
-    @Body() rows: CreateLearningActivityDto[]
+  async bulkImport(
+    @Body() rows: NormalizedLearningActivityInput[]
   ): Promise<BulkImportResultDto> {
     return this.service.bulkImport(rows);
   }

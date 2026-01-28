@@ -1,64 +1,64 @@
 import { Injectable } from '@nestjs/common';
 import { LearningActivityRepository } from './learningActivity.repository';
-import { CreateLearningActivityDto } from './dto/createLearningActivity.dto';
+import { LearningActivityResolver } from './validator/learningActivity.resolver';
+import { NormalizedLearningActivityInput } from '../../../frontend/src/domain/types/normalizedLearningActivity';
 import { LearningActivityResponseDto } from './dto/responseLearningActivity.dto';
 import { BulkImportResultDto } from '../bulkImport/dto/bulkImportResult.dto';
-import { validateLearningActivity } from '../../../frontend/src/domain/validation/learningActivityImport.validator';
 
 @Injectable()
 export class LearningActivityService {
   constructor(
-    private readonly repository: LearningActivityRepository
+    private readonly repository: LearningActivityRepository,
+    private readonly resolver: LearningActivityResolver
   ) {}
 
-  async create(
-    dto: CreateLearningActivityDto
-  ): Promise<LearningActivityResponseDto> {
-    /**
-     * Step 1: Validate input
-     */
-    const fieldErrors = validateLearningActivity(dto);
+  async createFromNormalized(
+    input: NormalizedLearningActivityInput
+  ): Promise<
+    | LearningActivityResponseDto
+    | { fieldErrors: Record<string, string> }
+  > {
+    const resolution = await this.resolver.resolve(
+      input
+    );
 
-    if (Object.keys(fieldErrors).length > 0) {
-      throw {
-        message: 'VALIDATION_FAILED',
-        fieldErrors
-      };
+    if (resolution.fieldErrors) {
+      return { fieldErrors: resolution.fieldErrors };
     }
 
-    /**
-     * Step 2: Persist
-     */
-    const entity = await this.repository.create(dto);
+    const entity =
+      await this.repository.create(
+        resolution.dto!
+      );
 
-    /**
-     * Step 3: Map to response
-     */
-    return LearningActivityResponseDto.fromEntity(entity);
+    return LearningActivityResponseDto.fromEntity(
+      entity
+    );
   }
 
   async bulkImport(
-    rows: CreateLearningActivityDto[]
+    inputs: NormalizedLearningActivityInput[]
   ): Promise<BulkImportResultDto> {
-    const totalRows = rows.length;
-
     let inserted = 0;
     let blocked = 0;
 
-    for (const row of rows) {
-      const fieldErrors = validateLearningActivity(row);
+    for (const input of inputs) {
+      const resolution =
+        await this.resolver.resolve(input);
 
-      if (Object.keys(fieldErrors).length > 0) {
+      if (resolution.fieldErrors) {
         blocked++;
         continue;
       }
 
-      await this.repository.create(row);
+      await this.repository.create(
+        resolution.dto!
+      );
       inserted++;
     }
 
     return {
-      totalRows,
+      totalRows: inputs.length,
       inserted,
       blocked,
       warnings: 0
@@ -67,8 +67,8 @@ export class LearningActivityService {
 
   async getAll(): Promise<LearningActivityResponseDto[]> {
     const entities = await this.repository.findAll();
-    return entities.map(
-      LearningActivityResponseDto.fromEntity
+    return entities.map(entity =>
+      LearningActivityResponseDto.fromEntity(entity)
     );
   }
 }
